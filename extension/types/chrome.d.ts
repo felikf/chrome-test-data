@@ -7,16 +7,24 @@ declare namespace chrome {
 
     interface WebRequestBodyDetails extends WebRequestDetailsBase {
       requestBody?: { raw?: Array<{ bytes?: ArrayBuffer }> };
+      requestId: string;
     }
 
     interface WebResponseDetails extends WebRequestDetailsBase {
       statusCode: number;
     }
 
+    interface StreamFilter {
+      ondata?: (event: { data: ArrayBuffer }) => void;
+      onstop?: () => void;
+      write(chunk: ArrayBuffer): void;
+      disconnect(): void;
+    }
+
     interface RequestFilter {
       urls: string[];
     }
-    type OnBeforeRequestOptions = Array<'requestBody'>;
+    type OnBeforeRequestOptions = Array<'requestBody' | 'blocking'>;
     interface WebRequestEvent {
       addListener(
         callback: (details: WebRequestBodyDetails) => void,
@@ -29,6 +37,7 @@ declare namespace chrome {
     }
     const onBeforeRequest: WebRequestEvent;
     const onCompleted: WebRequestCompletedEvent;
+    function filterResponseData(requestId: string): StreamFilter;
   }
 
   namespace tabs {
