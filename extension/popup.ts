@@ -17,6 +17,15 @@ function setStatus(message: string, type: 'info' | 'error' = 'info') {
   statusEl.className = type;
 }
 
+function getProductValue(record: CluidRecord): string {
+  const candidates = ['product', 'Product', 'productName', 'ProductName'];
+  for (const key of candidates) {
+    const value = record.formData?.[key];
+    if (value) return value;
+  }
+  return '—';
+}
+
 async function getActiveTab(): Promise<chrome.tabs.Tab> {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id) {
@@ -79,7 +88,7 @@ async function handleFill(record: CluidRecord) {
   try {
     await fillForm(record.formData, record.cluid);
     await setLastActiveCluid(record.cluid);
-    setStatus(`Loaded data for ${record.cluid} to the page.`);
+    setStatus(`Loaded full form data for ${record.cluid} to the page.`);
   } catch (error) {
     console.error(error);
     setStatus('Could not load data into the page.', 'error');
@@ -94,28 +103,52 @@ async function handleDelete(record: CluidRecord) {
   setStatus(`Deleted ${record.cluid}.`);
 }
 
-async function handleEditNote(record: CluidRecord) {
-  const updatedNote = prompt('Edit note (firstname lastname):', record.note || '');
-  if (updatedNote === null) return;
-  const updated: CluidRecord = { ...record, note: updatedNote, lastEdited: nowIso() };
-  await upsertRecord(updated);
-  await renderRecords();
-  setStatus(`Updated note for ${record.cluid}.`);
-}
-
 function renderRecordRow(record: CluidRecord): HTMLTableRowElement {
   const template = document.getElementById('record-row-template') as HTMLTemplateElement;
   const clone = template.content.firstElementChild!.cloneNode(true) as HTMLTableRowElement;
   (clone.querySelector('.cluid') as HTMLElement).textContent = record.cluid;
   (clone.querySelector('.note') as HTMLElement).textContent = record.note || '—';
+  (clone.querySelector('.product') as HTMLElement).textContent = getProductValue(record);
   (clone.querySelector('.application') as HTMLElement).textContent = record.applicationState || '—';
   (clone.querySelector('.step') as HTMLElement).textContent = record.stepCode || '—';
   (clone.querySelector('.edited') as HTMLElement).textContent = new Date(record.lastEdited).toLocaleString();
 
   const actionsCell = clone.querySelector('.actions') as HTMLElement;
+  const startInlineEdit = () => {
+    const noteCell = clone.querySelector('.note') as HTMLElement;
+    const currentValue = record.note || '';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = currentValue;
+    input.placeholder = 'First name Last name';
+    input.size = 24;
+
+    noteCell.textContent = '';
+    noteCell.appendChild(input);
+
+    const saveButton = buildActionButton('Save', async () => {
+      const updated: CluidRecord = { ...record, note: input.value.trim(), lastEdited: nowIso() };
+      await upsertRecord(updated);
+      await renderRecords();
+      setStatus(`Updated note for ${record.cluid}.`);
+    });
+
+    const cancelButton = buildActionButton('Cancel', () => renderRecords());
+
+    actionsCell.replaceChildren(
+      buildActionButton('Load', () => handleFill(record), 'Fill the page with this record'),
+      saveButton,
+      cancelButton,
+      buildActionButton('Delete', () => handleDelete(record))
+    );
+
+    input.focus();
+  };
+
   actionsCell.append(
     buildActionButton('Load', () => handleFill(record), 'Fill the page with this record'),
-    buildActionButton('Edit note', () => handleEditNote(record)),
+    buildActionButton('Edit note', startInlineEdit),
     buildActionButton('Delete', () => handleDelete(record))
   );
 
@@ -125,11 +158,13 @@ function renderRecordRow(record: CluidRecord): HTMLTableRowElement {
 async function renderRecords() {
   const records = await getRecords();
   recordsTbody.innerHTML = '';
-  records.forEach((record) => recordsTbody.appendChild(renderRecordRow(record)));
+  records
+    .sort((a, b) => new Date(b.lastEdited).getTime() - new Date(a.lastEdited).getTime())
+    .forEach((record) => recordsTbody.appendChild(renderRecordRow(record)));
   if (records.length === 0) {
     const emptyRow = document.createElement('tr');
     const cell = document.createElement('td');
-    cell.colSpan = 6;
+    cell.colSpan = 7;
     cell.textContent = 'No saved records yet.';
     emptyRow.appendChild(cell);
     recordsTbody.appendChild(emptyRow);

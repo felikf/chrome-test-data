@@ -6,16 +6,11 @@
   "permissions": [
     "storage",
     "scripting",
-    "activeTab",
-    "webRequest"
+    "activeTab"
   ],
   "host_permissions": [
     "https://localhost:7994/*"
   ],
-  "background": {
-    "service_worker": "./dist/background.js",
-    "type": "module"
-  },
   "action": {
     "default_popup": "popup.html"
   },
