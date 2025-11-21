@@ -1,0 +1,15 @@
+{
+  "name": "loan-debug-form-helper",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "clean": "rm -rf dist build",
+    "build": "tsc -p tsconfig.json",
+    "package": "npm run clean && npm run build && node scripts/package.js"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.262",
+    "typescript": "^5.4.5"
+  }
+}
