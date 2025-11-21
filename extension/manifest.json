@@ -10,7 +10,8 @@
     "webRequest"
   ],
   "host_permissions": [
-    "https://localhost:7994/*"
+    "https://localhost:7994/*",
+    "https://www.csast.csas.cz/*"
   ],
   "background": {
     "service_worker": "./dist/background.js",

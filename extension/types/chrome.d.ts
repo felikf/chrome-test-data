@@ -1,9 +1,18 @@
 declare namespace chrome {
   namespace webRequest {
-    interface WebRequestBodyDetails {
+    interface WebRequestDetailsBase {
       url: string;
+      initiator?: string;
+    }
+
+    interface WebRequestBodyDetails extends WebRequestDetailsBase {
       requestBody?: { raw?: Array<{ bytes?: ArrayBuffer }> };
     }
+
+    interface WebResponseDetails extends WebRequestDetailsBase {
+      statusCode: number;
+    }
+
     interface RequestFilter {
       urls: string[];
     }
@@ -15,7 +24,11 @@ declare namespace chrome {
         extraInfoSpec?: OnBeforeRequestOptions,
       ): void;
     }
+    interface WebRequestCompletedEvent {
+      addListener(callback: (details: WebResponseDetails) => void, filter: RequestFilter): void;
+    }
     const onBeforeRequest: WebRequestEvent;
+    const onCompleted: WebRequestCompletedEvent;
   }
 
   namespace tabs {

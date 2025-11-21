@@ -1,4 +1,4 @@
-import { CluidRecord, getLastActiveCluid, getRecord, setLastActiveCluid, upsertRecord, nowIso } from './utils/storage';
+import { CluidRecord, getLastActiveCluid, getRecord, setLastActiveCluid, upsertRecord, nowIso } from './utils/storage.js';
 
 function parseJsonBody(details: chrome.webRequest.WebRequestBodyDetails): any | undefined {
   const raw = details.requestBody?.raw?.[0]?.bytes;
@@ -8,6 +8,17 @@ function parseJsonBody(details: chrome.webRequest.WebRequestBodyDetails): any | 
     return JSON.parse(decoded);
   } catch (error) {
     console.warn('Failed to parse request body', error);
+    return undefined;
+  }
+}
+
+async function fetchJson(url: string): Promise<any | undefined> {
+  try {
+    const response = await fetch(url, { credentials: 'include' });
+    if (!response.ok) return undefined;
+    return await response.json();
+  } catch (error) {
+    console.warn('Failed to fetch request payload', error);
     return undefined;
   }
 }
@@ -29,8 +40,15 @@ async function updateRecord(partial: Partial<CluidRecord>): Promise<void> {
   await upsertRecord(updated);
 }
 
+const requestFilter = { urls: ['https://localhost:7994/*', 'https://www.csast.csas.cz/*'] };
+
+function isExtensionInitiated(details: chrome.webRequest.WebRequestBodyDetails | chrome.webRequest.WebResponseDetails) {
+  return details.initiator?.startsWith('chrome-extension://');
+}
+
 chrome.webRequest.onBeforeRequest.addListener(
   async (details) => {
+    if (isExtensionInitiated(details)) return;
     const url = new URL(details.url);
     if (!url.pathname.includes('/loans/my/applications')) return;
     const body = parseJsonBody(details);
@@ -48,8 +66,39 @@ chrome.webRequest.onBeforeRequest.addListener(
       });
     }
   },
-  { urls: ['https://localhost:7994/*'] },
-  ['requestBody']
+  requestFilter,
+  ['requestBody'],
+);
+
+chrome.webRequest.onCompleted.addListener(
+  async (details) => {
+    if (isExtensionInitiated(details) || details.statusCode < 200 || details.statusCode >= 300) {
+      return;
+    }
+
+    const url = new URL(details.url);
+    if (!url.pathname.includes('/loans/my/applications')) return;
+
+    if (url.pathname.endsWith('/basicdata')) {
+      const payload = await fetchJson(details.url);
+      if (payload?.firstname && payload?.lastname) {
+        const note = `${payload.firstname} ${payload.lastname}`.trim();
+        await updateRecord({ note });
+      }
+      return;
+    }
+
+    if (url.pathname.endsWith('/step')) {
+      const payload = await fetchJson(details.url);
+      if (payload?.step?.code) {
+        await updateRecord({
+          applicationState: payload.applicationState,
+          stepCode: payload.step.code,
+        });
+      }
+    }
+  },
+  requestFilter,
 );
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
