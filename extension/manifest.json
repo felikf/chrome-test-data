@@ -13,7 +13,7 @@
     "https://localhost:7994/*"
   ],
   "background": {
-    "service_worker": "background.js",
+    "service_worker": "./dist/background.js",
     "type": "module"
   },
   "action": {
@@ -22,8 +22,14 @@
   "content_scripts": [
     {
       "matches": ["https://localhost:7994/loan/debug/*"],
-      "js": ["content.js"],
+      "js": ["./dist/content.js"],
       "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["dist/utils/*.js"],
+      "matches": ["*://*/*"]
     }
   ]
 }
