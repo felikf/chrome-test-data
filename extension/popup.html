@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Loan Debug Form Helper</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Loan Debug Helper</h1>
+      <button id="save-current">💾 Save current form</button>
+    </header>
+
+    <section id="status" aria-live="polite"></section>
+
+    <section>
+      <table>
+        <thead>
+          <tr>
+            <th>Cluid</th>
+            <th>Note</th>
+            <th>Application State</th>
+            <th>Step Code</th>
+            <th>Last Edited</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="records"></tbody>
+      </table>
+    </section>
+
+    <template id="record-row-template">
+      <tr>
+        <td class="cluid"></td>
+        <td class="note"></td>
+        <td class="application"></td>
+        <td class="step"></td>
+        <td class="edited"></td>
+        <td class="actions"></td>
+      </tr>
+    </template>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>
