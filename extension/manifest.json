@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Loan Debug Form Helper",
+  "version": "1.0.0",
+  "description": "Save, edit, delete and restore form data on the loan debug page.",
+  "permissions": [
+    "storage",
+    "scripting",
+    "activeTab",
+    "webRequest"
+  ],
+  "host_permissions": [
+    "https://localhost:7994/*"
+  ],
+  "background": {
+    "service_worker": "./dist/background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://localhost:7994/loan/debug/*"],
+      "js": ["./dist/content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
