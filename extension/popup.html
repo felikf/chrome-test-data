@@ -7,38 +7,9 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <header>
-      <h1>Loan Debug Helper</h1>
-      <button id="save-current">💾 Save current form</button>
-    </header>
+    <div id="root"></div>
 
-    <section id="status" aria-live="polite"></section>
-
-    <section>
-      <table>
-        <thead>
-          <tr>
-            <th>Cluid</th>
-            <th>Note</th>
-            <th>Product</th>
-            <th>Last Edited</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="records"></tbody>
-      </table>
-    </section>
-
-    <template id="record-row-template">
-      <tr>
-        <td class="cluid"></td>
-        <td class="note"></td>
-        <td class="product"></td>
-        <td class="edited"></td>
-        <td class="actions"></td>
-      </tr>
-    </template>
-
+    <script src="./vendor/react-lite.js"></script>
     <script type="module" src="./dist/popup.js"></script>
   </body>
 </html>

@@ -22,6 +22,11 @@ copyList.forEach((file) => {
   copyFileSync(path.join(rootDir, file), path.join(releaseDir, file));
 });
 
+const vendorDir = path.join(rootDir, 'vendor');
+if (existsSync(vendorDir)) {
+  cpSync(vendorDir, path.join(releaseDir, 'vendor'), { recursive: true });
+}
+
 cpSync(distDir, path.join(releaseDir, 'dist'), { recursive: true });
 
 const zipCommand = `cd "${releaseDir}" && zip -r "${zipPath}" .`;
