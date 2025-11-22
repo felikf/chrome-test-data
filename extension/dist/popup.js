@@ -262,21 +262,58 @@ function RecordRow({ record, noteDraft }) {
                 className: 'btn btn-success',
                 onClick: () => void handleFill(record),
                 title: 'Fill the page with this record',
-            }, 'Load'),
-            h('button', { className: 'btn btn-primary', onClick: () => void handleSaveNote(record) }, 'Save'),
-            h('button', { className: 'btn btn-secondary', onClick: () => removeEditingNote(record.cluid) }, 'Cancel'),
-            h('button', { className: 'btn btn-accent', onClick: () => void handleFillAndRedirect(record) }, 'Redirect'),
-            h('button', { className: 'btn btn-danger', onClick: () => void handleDelete(record) }, 'Delete'),
+                'aria-label': 'Load record into page',
+            }, '⬇️'),
+            h('button', {
+                className: 'btn btn-primary',
+                onClick: () => void handleSaveNote(record),
+                title: 'Save the note',
+                'aria-label': 'Save note',
+            }, '💾'),
+            h('button', {
+                className: 'btn btn-secondary',
+                onClick: () => removeEditingNote(record.cluid),
+                title: 'Cancel note editing',
+                'aria-label': 'Cancel note editing',
+            }, '↩️'),
+            h('button', {
+                className: 'btn btn-accent',
+                onClick: () => void handleFillAndRedirect(record),
+                title: 'Load and redirect',
+                'aria-label': 'Load and redirect',
+            }, '🚀'),
+            h('button', {
+                className: 'btn btn-danger',
+                onClick: () => void handleDelete(record),
+                title: 'Delete record',
+                'aria-label': 'Delete record',
+            }, '🗑️'),
         ]
         : [
             h('button', {
                 className: 'btn btn-success',
                 onClick: () => void handleFill(record),
                 title: 'Fill the page with this record',
-            }, 'Load'),
-            h('button', { className: 'btn btn-secondary', onClick: () => startEditing(record) }, 'Edit note'),
-            h('button', { className: 'btn btn-accent', onClick: () => void handleFillAndRedirect(record) }, 'Redirect'),
-            h('button', { className: 'btn btn-danger', onClick: () => void handleDelete(record) }, 'Delete'),
+                'aria-label': 'Load record into page',
+            }, '⬇️'),
+            h('button', {
+                className: 'btn btn-secondary',
+                onClick: () => startEditing(record),
+                title: 'Edit note',
+                'aria-label': 'Edit note',
+            }, '📝'),
+            h('button', {
+                className: 'btn btn-accent',
+                onClick: () => void handleFillAndRedirect(record),
+                title: 'Load and redirect',
+                'aria-label': 'Load and redirect',
+            }, '🚀'),
+            h('button', {
+                className: 'btn btn-danger',
+                onClick: () => void handleDelete(record),
+                title: 'Delete record',
+                'aria-label': 'Delete record',
+            }, '🗑️'),
         ];
     const noteCellContent = isEditing
         ? h('input', {
@@ -312,10 +349,27 @@ function RecordsTable({ state }) {
     const bodyContent = rows.length
         ? rows
         : [h('tr', null, h('td', { colSpan: 6 }, 'No saved records yet.'))];
-    return h('section', null, h('table', null, h('thead', null, h('tr', null, h('th', { className: 'reorder-header', title: 'Reorder' }, '↕️'), h('th', null, 'Cluid'), h('th', null, 'Product'), h('th', null, 'Note'), h('th', null, 'Last Edited'), h('th', null, 'Actions'))), h('tbody', null, bodyContent)));
+    return h('section', null, h(ActionLegend, null), h('table', null, h('thead', null, h('tr', null, h('th', { className: 'reorder-header', title: 'Reorder' }, '↕️'), h('th', null, 'Cluid'), h('th', null, 'Product'), h('th', null, 'Note'), h('th', null, 'Last Edited'), h('th', null, 'Actions'))), h('tbody', null, bodyContent)));
+}
+function ActionLegend() {
+    const items = [
+        ['⬇️', 'Load record'],
+        ['📝', 'Edit note'],
+        ['💾', 'Save note'],
+        ['↩️', 'Cancel editing'],
+        ['🚀', 'Load and redirect'],
+        ['🗑️', 'Delete record'],
+    ];
+    const legendItems = items.map(([emoji, label]) => h('span', { className: 'legend-item' }, h('span', { className: 'legend-emoji', 'aria-hidden': 'true' }, emoji), h('span', { className: 'legend-label' }, label)));
+    return h('div', { className: 'action-legend', 'aria-label': 'Action legend' }, legendItems);
 }
 function App({ appState }) {
-    return h(React.Fragment, null, h('header', null, h('h1', null, 'Loan Debug Helper'), h('div', { className: 'header-actions' }, h('button', { className: 'btn btn-primary', onClick: () => void handleSaveCurrent() }, '💾 Save current form'))), h(StatusMessage, { status: appState.status }), h(RecordsTable, { state: appState }), h('section', { className: 'importer' }, h('h2', null, 'Import cluids'), h('p', null, 'Paste cluids separated by comma, semicolon, whitespace, or provide pairs like "cluid Firstname Lastname".'), h('div', { className: 'importer-controls' }, h('textarea', {
+    return h(React.Fragment, null, h('header', null, h('h1', null, 'Loan Debug Helper'), h('div', { className: 'header-actions' }, h('button', {
+        className: 'btn btn-primary',
+        onClick: () => void handleSaveCurrent(),
+        title: 'Save current form',
+        'aria-label': 'Save current form',
+    }, '💾'))), h(StatusMessage, { status: appState.status }), h(RecordsTable, { state: appState }), h('section', { className: 'importer' }, h('h2', null, 'Import cluids'), h('p', null, 'Paste cluids separated by comma, semicolon, whitespace, or provide pairs like "cluid Firstname Lastname".'), h('div', { className: 'importer-controls' }, h('textarea', {
         value: appState.importInput,
         rows: 4,
         placeholder: '8016-... John Doe\n9015-... Jane Doe',
