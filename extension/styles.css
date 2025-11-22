@@ -14,6 +14,11 @@ header {
   margin-bottom: 12px;
 }
 
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
 h1 {
   font-size: 18px;
   margin: 0;
@@ -29,6 +34,61 @@ button {
 
 button:hover {
   background: #e5e7eb;
+}
+
+.btn {
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.btn-primary {
+  background: #1d4ed8;
+  color: #ffffff;
+  border-color: #1e3a8a;
+}
+
+.btn-primary:hover {
+  background: #1e40af;
+}
+
+.btn-success {
+  background: #15803d;
+  color: #ffffff;
+  border-color: #14532d;
+}
+
+.btn-success:hover {
+  background: #166534;
+}
+
+.btn-danger {
+  background: #b91c1c;
+  color: #ffffff;
+  border-color: #7f1d1d;
+}
+
+.btn-danger:hover {
+  background: #991b1b;
+}
+
+.btn-secondary {
+  background: #e5e7eb;
+  color: #111827;
+  border-color: #d1d5db;
+}
+
+.btn-secondary:hover {
+  background: #d1d5db;
+}
+
+.btn-accent {
+  background: #0ea5e9;
+  color: #ffffff;
+  border-color: #0284c7;
+}
+
+.btn-accent:hover {
+  background: #0284c7;
 }
 
 #status {
@@ -71,4 +131,36 @@ td.actions button {
 
 td.actions button:last-child {
   margin-right: 0;
+}
+
+.importer {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+
+.importer h2 {
+  margin: 0 0 6px 0;
+  font-size: 16px;
+}
+
+.importer p {
+  margin: 0 0 8px 0;
+  color: #4b5563;
+}
+
+.importer-controls {
+  display: grid;
+  gap: 8px;
+}
+
+.importer textarea {
+  width: 100%;
+  min-height: 72px;
+  padding: 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-family: inherit;
 }

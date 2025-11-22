@@ -29,10 +29,31 @@ function fillFormData(formData) {
         element.value = value;
         element.dispatchEvent(new Event('input', { bubbles: true }));
         element.dispatchEvent(new Event('change', { bubbles: true }));
+        if (element instanceof HTMLInputElement && element.type === 'hidden') {
+            const parentButton = element.closest('button');
+            const labelSpan = parentButton?.querySelector('span');
+            if (labelSpan) {
+                labelSpan.textContent = value;
+            }
+        }
     });
 }
 function getCluidValue(formData) {
     return formData['cluid'] || formData['Cluid'] || undefined;
+}
+function clickRedirectButton() {
+    const redirectByDataCy = document.querySelector('button[data-cy="submit"]');
+    if (redirectByDataCy) {
+        redirectByDataCy.click();
+        return true;
+    }
+    const buttons = Array.from(document.querySelectorAll('button')); // includes g-button component root
+    const redirectByText = buttons.find((btn) => /redirect/i.test(btn.textContent || ''));
+    if (redirectByText) {
+        redirectByText.click();
+        return true;
+    }
+    return false;
 }
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message.type === 'collect-form-data') {
@@ -44,6 +65,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message.type === 'fill-form-data') {
         fillFormData(message.payload.formData || {});
         sendResponse({ status: 'filled' });
+        return true;
+    }
+    if (message.type === 'trigger-redirect') {
+        const clicked = clickRedirectButton();
+        sendResponse({ clicked });
         return true;
     }
     return false;
