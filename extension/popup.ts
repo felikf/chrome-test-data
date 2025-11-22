@@ -13,6 +13,7 @@ type AppState = {
   records: CluidRecord[];
   status: StatusState | null;
   editingNotes: Record<string, string>;
+  importInput: string;
 };
 
 declare const React: {
@@ -30,6 +31,7 @@ const state: AppState = {
   records: [],
   status: null,
   editingNotes: {},
+  importInput: '',
 };
 
 function setStatus(message: string, type: StatusState['type'] = 'info') {
@@ -38,11 +40,27 @@ function setStatus(message: string, type: StatusState['type'] = 'info') {
 }
 
 function getProductValue(record: CluidRecord): string {
-  const candidates = ['product', 'Product', 'productName', 'ProductName'];
-  for (const key of candidates) {
-    const value = record.formData?.[key];
-    if (value) return value;
+  const candidates = [
+    'product',
+    'Product',
+    'productName',
+    'ProductName',
+    'productId',
+    'productID',
+  ];
+  const productValue = candidates
+    .map((key) => record.formData?.[key])
+    .find((value) => typeof value === 'string' && value.trim().length > 0);
+
+  const channelProduct =
+    record.formData?.['channelProduct'] || record.formData?.['ChannelProduct'];
+
+  if (productValue && channelProduct && channelProduct !== productValue) {
+    return `${productValue} / ${channelProduct}`;
   }
+
+  if (productValue) return productValue;
+  if (channelProduct) return channelProduct;
   return '—';
 }
 
@@ -113,6 +131,21 @@ async function handleSaveCurrent() {
   }
 }
 
+async function handleTriggerRedirect() {
+  try {
+    const tab = await getActiveTab();
+    const response = await chrome.tabs.sendMessage(tab.id!, { type: 'trigger-redirect' });
+    if (response?.clicked) {
+      setStatus('Clicked Redirect on the page.');
+    } else {
+      setStatus('Redirect button was not found on the page.', 'error');
+    }
+  } catch (error) {
+    console.error(error);
+    setStatus('Failed to trigger redirect on the page.', 'error');
+  }
+}
+
 async function handleFill(record: CluidRecord) {
   try {
     await fillForm(record.formData, record.cluid);
@@ -147,6 +180,51 @@ function startEditing(record: CluidRecord) {
   renderApp();
 }
 
+function updateImportInput(value: string) {
+  state.importInput = value;
+  renderApp();
+}
+
+async function handleImportCluids() {
+  const raw = state.importInput.trim();
+  if (!raw) {
+    setStatus('Provide at least one cluid to import.', 'error');
+    return;
+  }
+
+  const uniqueCluids = Array.from(
+    new Set(
+      raw
+        .split(/[\s,;]+/)
+        .map((value) => value.trim())
+        .filter(Boolean)
+    )
+  );
+
+  if (uniqueCluids.length === 0) {
+    setStatus('No valid cluids found in the input.', 'error');
+    return;
+  }
+
+  try {
+    for (const cluid of uniqueCluids) {
+      const existing = await getRecord(cluid);
+      const record: CluidRecord = existing
+        ? { ...existing, lastEdited: existing.lastEdited || nowIso() }
+        : { cluid, formData: {}, note: '', lastEdited: nowIso() };
+
+      await upsertRecord(record);
+    }
+
+    state.importInput = '';
+    await refreshRecords();
+    setStatus(`Imported ${uniqueCluids.length} cluid(s).`);
+  } catch (error) {
+    console.error(error);
+    setStatus('Failed to import cluids.', 'error');
+  }
+}
+
 function StatusMessage({ status }: { status: StatusState | null }) {
   if (!status?.message) return null;
   return h('section', { id: 'status', className: status.type, 'aria-live': 'polite' }, status.message);
@@ -158,21 +236,49 @@ function RecordRow({ record, noteDraft }: { record: CluidRecord; noteDraft?: str
     ? [
         h(
           'button',
-          { onClick: () => void handleFill(record), title: 'Fill the page with this record' },
+          {
+            className: 'btn btn-success',
+            onClick: () => void handleFill(record),
+            title: 'Fill the page with this record',
+          },
           'Load'
         ),
-        h('button', { onClick: () => void handleSaveNote(record) }, 'Save'),
-        h('button', { onClick: () => removeEditingNote(record.cluid) }, 'Cancel'),
-        h('button', { onClick: () => void handleDelete(record) }, 'Delete'),
+        h(
+          'button',
+          { className: 'btn btn-primary', onClick: () => void handleSaveNote(record) },
+          'Save'
+        ),
+        h(
+          'button',
+          { className: 'btn btn-secondary', onClick: () => removeEditingNote(record.cluid) },
+          'Cancel'
+        ),
+        h(
+          'button',
+          { className: 'btn btn-danger', onClick: () => void handleDelete(record) },
+          'Delete'
+        ),
       ]
     : [
         h(
           'button',
-          { onClick: () => void handleFill(record), title: 'Fill the page with this record' },
+          {
+            className: 'btn btn-success',
+            onClick: () => void handleFill(record),
+            title: 'Fill the page with this record',
+          },
           'Load'
         ),
-        h('button', { onClick: () => startEditing(record) }, 'Edit note'),
-        h('button', { onClick: () => void handleDelete(record) }, 'Delete'),
+        h(
+          'button',
+          { className: 'btn btn-secondary', onClick: () => startEditing(record) },
+          'Edit note'
+        ),
+        h(
+          'button',
+          { className: 'btn btn-danger', onClick: () => void handleDelete(record) },
+          'Delete'
+        ),
       ];
 
   const noteCellContent = isEditing
@@ -237,7 +343,39 @@ function App({ appState }: { appState: AppState }) {
       'header',
       null,
       h('h1', null, 'Loan Debug Helper'),
-      h('button', { onClick: () => void handleSaveCurrent() }, '💾 Save current form')
+      h('div', { className: 'header-actions' }, [
+        h(
+          'button',
+          { className: 'btn btn-primary', onClick: () => void handleSaveCurrent() },
+          '💾 Save current form'
+        ),
+        h(
+          'button',
+          { className: 'btn btn-accent', onClick: () => void handleTriggerRedirect() },
+          'Redirect'
+        ),
+      ])
+    ),
+    h(
+      'section',
+      { className: 'importer' },
+      h('h2', null, 'Import cluids'),
+      h('p', null, 'Paste cluids separated by comma, semicolon, or whitespace.'),
+      h(
+        'div',
+        { className: 'importer-controls' },
+        h('textarea', {
+          value: appState.importInput,
+          rows: 3,
+          placeholder: 'cluid-one, cluid-two; cluid-three',
+          onInput: (event: Event) => updateImportInput((event.target as HTMLTextAreaElement).value),
+        }),
+        h(
+          'button',
+          { className: 'btn btn-primary', onClick: () => void handleImportCluids() },
+          'Import'
+        )
+      )
     ),
     h(StatusMessage, { status: appState.status }),
     h(RecordsTable, { state: appState })
