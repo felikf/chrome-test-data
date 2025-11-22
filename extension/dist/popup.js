@@ -160,9 +160,15 @@ async function handleImportCluids() {
     try {
         for (const cluid of uniqueCluids) {
             const existing = await getRecord(cluid);
+            const existingFormData = existing?.formData || {};
+            const formDataWithCluid = { cluid, ...existingFormData };
             const record = existing
-                ? { ...existing, lastEdited: existing.lastEdited || nowIso() }
-                : { cluid, formData: {}, note: '', lastEdited: nowIso() };
+                ? {
+                    ...existing,
+                    formData: formDataWithCluid,
+                    lastEdited: existing.lastEdited || nowIso(),
+                }
+                : { cluid, formData: formDataWithCluid, note: '', lastEdited: nowIso() };
             await upsertRecord(record);
         }
         state.importInput = '';
