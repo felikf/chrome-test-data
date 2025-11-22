@@ -14,6 +14,7 @@ type AppState = {
   status: StatusState | null;
   editingNotes: Record<string, string>;
   importInput: string;
+  recordsOrder: string[];
 };
 
 declare const React: {
@@ -32,6 +33,7 @@ const state: AppState = {
   status: null,
   editingNotes: {},
   importInput: '',
+  recordsOrder: [],
 };
 
 function setStatus(message: string, type: StatusState['type'] = 'info') {
@@ -97,7 +99,24 @@ function removeEditingNote(cluid: string) {
 
 async function refreshRecords() {
   const records = await getRecords();
-  state.records = records.sort((a, b) => new Date(b.lastEdited).getTime() - new Date(a.lastEdited).getTime());
+  const preferredOrder = state.recordsOrder;
+  const recordMap = new Map(records.map((record) => [record.cluid, record]));
+  const orderedRecords: CluidRecord[] = [];
+
+  preferredOrder.forEach((cluid) => {
+    const record = recordMap.get(cluid);
+    if (record) {
+      orderedRecords.push(record);
+      recordMap.delete(cluid);
+    }
+  });
+
+  const remaining = Array.from(recordMap.values()).sort(
+    (a, b) => new Date(b.lastEdited).getTime() - new Date(a.lastEdited).getTime(),
+  );
+
+  state.records = [...orderedRecords, ...remaining];
+  state.recordsOrder = state.records.map((record) => record.cluid);
   renderApp();
 }
 
@@ -158,8 +177,7 @@ async function handleFill(record: CluidRecord) {
 }
 
 async function handleDelete(record: CluidRecord) {
-  const confirmation = confirm(`Delete stored data for ${record.cluid}?`);
-  if (!confirmation) return;
+  state.recordsOrder = state.recordsOrder.filter((cluid) => cluid !== record.cluid);
   await deleteRecord(record.cluid);
   removeEditingNote(record.cluid);
   await refreshRecords();
@@ -185,6 +203,52 @@ function updateImportInput(value: string) {
   renderApp();
 }
 
+type ImportEntry = { cluid: string; note?: string };
+
+const cluidPattern = /^\d{4}-\d{2}-\d{2}-\d{2}\.\d{2}\.\d{2}\.\d+$/;
+
+function isLikelyCluid(value: string): boolean {
+  return cluidPattern.test(value.trim());
+}
+
+function parseImportEntries(raw: string): ImportEntry[] {
+  const entries = new Map<string, string | undefined>();
+  const lines = raw.split(/\n+/);
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    const tokens = trimmed
+      .split(/[\s,;]+/)
+      .map((value) => value.trim())
+      .filter(Boolean);
+
+    const firstToken = tokens[0];
+    const hasNamePortion =
+      tokens.length >= 2 &&
+      isLikelyCluid(firstToken) &&
+      tokens.slice(1).some((token) => !isLikelyCluid(token));
+
+    if (hasNamePortion && firstToken) {
+      const noteStart = trimmed.indexOf(tokens[1]);
+      const note = noteStart >= 0 ? trimmed.slice(noteStart).trim() : undefined;
+      if (!entries.has(firstToken) || note) {
+        entries.set(firstToken, note || undefined);
+      }
+      continue;
+    }
+
+    tokens.forEach((token) => {
+      if (!entries.has(token)) {
+        entries.set(token, undefined);
+      }
+    });
+  }
+
+  return Array.from(entries, ([cluid, note]) => ({ cluid, note }));
+}
+
 async function handleImportCluids() {
   const raw = state.importInput.trim();
   if (!raw) {
@@ -192,39 +256,35 @@ async function handleImportCluids() {
     return;
   }
 
-  const uniqueCluids = Array.from(
-    new Set(
-      raw
-        .split(/[\s,;]+/)
-        .map((value) => value.trim())
-        .filter(Boolean)
-    )
-  );
+  const importEntries = parseImportEntries(raw);
 
-  if (uniqueCluids.length === 0) {
+  if (importEntries.length === 0) {
     setStatus('No valid cluids found in the input.', 'error');
     return;
   }
 
   try {
-    for (const cluid of uniqueCluids) {
+    for (const { cluid, note } of importEntries) {
       const existing = await getRecord(cluid);
       const existingFormData = existing?.formData || {};
       const formDataWithCluid = { cluid, ...existingFormData };
+      const resolvedNote = note ?? existing?.note ?? '';
       const record: CluidRecord = existing
         ? {
             ...existing,
             formData: formDataWithCluid,
+            note: resolvedNote,
             lastEdited: existing.lastEdited || nowIso(),
           }
-        : { cluid, formData: formDataWithCluid, note: '', lastEdited: nowIso() };
+        : { cluid, formData: formDataWithCluid, note: resolvedNote, lastEdited: nowIso() };
 
       await upsertRecord(record);
     }
 
     state.importInput = '';
+    state.recordsOrder = importEntries.map((entry) => entry.cluid);
     await refreshRecords();
-    setStatus(`Imported ${uniqueCluids.length} cluid(s).`);
+    setStatus(`Imported ${importEntries.length} cluid(s).`);
   } catch (error) {
     console.error(error);
     setStatus('Failed to import cluids.', 'error');
@@ -234,6 +294,32 @@ async function handleImportCluids() {
 function StatusMessage({ status }: { status: StatusState | null }) {
   if (!status?.message) return null;
   return h('section', { id: 'status', className: status.type, 'aria-live': 'polite' }, status.message);
+}
+
+let draggingCluid: string | null = null;
+
+function reorderRecords(sourceCluid: string, targetCluid: string) {
+  const current = [...state.records];
+  const fromIndex = current.findIndex((item) => item.cluid === sourceCluid);
+  const toIndex = current.findIndex((item) => item.cluid === targetCluid);
+  if (fromIndex < 0 || toIndex < 0) return;
+
+  const [moved] = current.splice(fromIndex, 1);
+  current.splice(toIndex, 0, moved);
+
+  state.records = current;
+  state.recordsOrder = current.map((item) => item.cluid);
+  renderApp();
+}
+
+async function handleFillAndRedirect(record: CluidRecord) {
+  try {
+    await handleFill(record);
+    await handleTriggerRedirect();
+  } catch (error) {
+    console.error(error);
+    setStatus('Could not load data and redirect.', 'error');
+  }
 }
 
 function RecordRow({ record, noteDraft }: { record: CluidRecord; noteDraft?: string }) {
@@ -261,6 +347,11 @@ function RecordRow({ record, noteDraft }: { record: CluidRecord; noteDraft?: str
         ),
         h(
           'button',
+          { className: 'btn btn-accent', onClick: () => void handleFillAndRedirect(record) },
+          'Redirect'
+        ),
+        h(
+          'button',
           { className: 'btn btn-danger', onClick: () => void handleDelete(record) },
           'Delete'
         ),
@@ -282,6 +373,11 @@ function RecordRow({ record, noteDraft }: { record: CluidRecord; noteDraft?: str
         ),
         h(
           'button',
+          { className: 'btn btn-accent', onClick: () => void handleFillAndRedirect(record) },
+          'Redirect'
+        ),
+        h(
+          'button',
           { className: 'btn btn-danger', onClick: () => void handleDelete(record) },
           'Delete'
         ),
@@ -299,10 +395,28 @@ function RecordRow({ record, noteDraft }: { record: CluidRecord; noteDraft?: str
 
   return h(
     'tr',
-    null,
+    {
+      draggable: true,
+      onDragStart: () => {
+        draggingCluid = record.cluid;
+      },
+      onDragOver: (event: DragEvent) => {
+        event.preventDefault();
+      },
+      onDrop: (event: DragEvent) => {
+        event.preventDefault();
+        if (!draggingCluid || draggingCluid === record.cluid) return;
+        reorderRecords(draggingCluid, record.cluid);
+        draggingCluid = null;
+      },
+      onDragEnd: () => {
+        draggingCluid = null;
+      },
+    },
+    h('td', { className: 'reorder-handle', title: 'Drag to reorder' }, '☰'),
     h('td', { className: 'cluid' }, record.cluid),
-    h('td', { className: 'note' }, noteCellContent),
     h('td', { className: 'product' }, getProductValue(record)),
+    h('td', { className: 'note' }, noteCellContent),
     h('td', { className: 'edited' }, new Date(record.lastEdited).toLocaleString()),
     h('td', { className: 'actions' }, actions)
   );
@@ -315,7 +429,7 @@ function RecordsTable({ state }: { state: AppState }) {
 
   const bodyContent = rows.length
     ? rows
-    : [h('tr', null, h('td', { colSpan: 5 }, 'No saved records yet.'))];
+    : [h('tr', null, h('td', { colSpan: 6 }, 'No saved records yet.'))];
 
   return h(
     'section',
@@ -329,9 +443,10 @@ function RecordsTable({ state }: { state: AppState }) {
         h(
           'tr',
           null,
+          h('th', { className: 'reorder-header', title: 'Reorder' }, '↕️'),
           h('th', null, 'Cluid'),
-          h('th', null, 'Note'),
           h('th', null, 'Product'),
+          h('th', null, 'Note'),
           h('th', null, 'Last Edited'),
           h('th', null, 'Actions')
         )
@@ -349,31 +464,34 @@ function App({ appState }: { appState: AppState }) {
       'header',
       null,
       h('h1', null, 'Loan Debug Helper'),
-      h('div', { className: 'header-actions' }, [
+      h(
+        'div',
+        { className: 'header-actions' },
         h(
           'button',
           { className: 'btn btn-primary', onClick: () => void handleSaveCurrent() },
           '💾 Save current form'
-        ),
-        h(
-          'button',
-          { className: 'btn btn-accent', onClick: () => void handleTriggerRedirect() },
-          'Redirect'
-        ),
-      ])
+        )
+      )
     ),
+    h(StatusMessage, { status: appState.status }),
+    h(RecordsTable, { state: appState }),
     h(
       'section',
       { className: 'importer' },
       h('h2', null, 'Import cluids'),
-      h('p', null, 'Paste cluids separated by comma, semicolon, or whitespace.'),
+      h(
+        'p',
+        null,
+        'Paste cluids separated by comma, semicolon, whitespace, or provide pairs like "cluid Firstname Lastname".'
+      ),
       h(
         'div',
         { className: 'importer-controls' },
         h('textarea', {
           value: appState.importInput,
-          rows: 3,
-          placeholder: 'cluid-one, cluid-two; cluid-three',
+          rows: 4,
+          placeholder: '8016-... John Doe\n9015-... Jane Doe',
           onInput: (event: Event) => updateImportInput((event.target as HTMLTextAreaElement).value),
         }),
         h(
@@ -382,9 +500,7 @@ function App({ appState }: { appState: AppState }) {
           'Import'
         )
       )
-    ),
-    h(StatusMessage, { status: appState.status }),
-    h(RecordsTable, { state: appState })
+    )
   );
 }
 
