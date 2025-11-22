@@ -93,8 +93,6 @@ function renderRecordRow(record) {
     clone.querySelector('.cluid').textContent = record.cluid;
     clone.querySelector('.note').textContent = record.note || '—';
     clone.querySelector('.product').textContent = getProductValue(record);
-    clone.querySelector('.application').textContent = record.applicationState || '—';
-    clone.querySelector('.step').textContent = record.stepCode || '—';
     clone.querySelector('.edited').textContent = new Date(record.lastEdited).toLocaleString();
     const actionsCell = clone.querySelector('.actions');
     const startInlineEdit = () => {
@@ -129,7 +127,7 @@ async function renderRecords() {
     if (records.length === 0) {
         const emptyRow = document.createElement('tr');
         const cell = document.createElement('td');
-        cell.colSpan = 7;
+        cell.colSpan = 5;
         cell.textContent = 'No saved records yet.';
         emptyRow.appendChild(cell);
         recordsTbody.appendChild(emptyRow);
