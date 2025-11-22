@@ -6,7 +6,7 @@ import {
   nowIso,
   setLastActiveCluid,
   upsertRecord,
-} from './utils/storage';
+} from './utils/storage.js';
 
 type StatusState = { message: string; type: 'info' | 'error' };
 type AppState = {
