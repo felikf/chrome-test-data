@@ -8,13 +8,33 @@ import {
   upsertRecord,
 } from './utils/storage';
 
-const recordsTbody = document.getElementById('records') as HTMLTableSectionElement;
-const statusEl = document.getElementById('status') as HTMLElement;
-const saveCurrentButton = document.getElementById('save-current') as HTMLButtonElement;
+type StatusState = { message: string; type: 'info' | 'error' };
+type AppState = {
+  records: CluidRecord[];
+  status: StatusState | null;
+  editingNotes: Record<string, string>;
+};
 
-function setStatus(message: string, type: 'info' | 'error' = 'info') {
-  statusEl.textContent = message;
-  statusEl.className = type;
+declare const React: {
+  createElement: (type: any, props?: Record<string, unknown> | null, ...children: any[]) => any;
+  Fragment: symbol;
+};
+
+declare const ReactDOM: {
+  createRoot: (container: Element | DocumentFragment) => { render: (element: any) => void };
+};
+
+const h = React.createElement;
+
+const state: AppState = {
+  records: [],
+  status: null,
+  editingNotes: {},
+};
+
+function setStatus(message: string, type: StatusState['type'] = 'info') {
+  state.status = { message, type };
+  renderApp();
 }
 
 function getProductValue(record: CluidRecord): string {
@@ -46,12 +66,21 @@ async function fillForm(formData: Record<string, string>, cluid: string) {
   await setLastActiveCluid(cluid);
 }
 
-function buildActionButton(label: string, onClick: () => void, title?: string): HTMLButtonElement {
-  const btn = document.createElement('button');
-  btn.textContent = label;
-  if (title) btn.title = title;
-  btn.addEventListener('click', onClick);
-  return btn;
+function updateEditingNote(cluid: string, value: string) {
+  state.editingNotes = { ...state.editingNotes, [cluid]: value };
+  renderApp();
+}
+
+function removeEditingNote(cluid: string) {
+  const { [cluid]: _removed, ...rest } = state.editingNotes;
+  state.editingNotes = rest;
+  renderApp();
+}
+
+async function refreshRecords() {
+  const records = await getRecords();
+  state.records = records.sort((a, b) => new Date(b.lastEdited).getTime() - new Date(a.lastEdited).getTime());
+  renderApp();
 }
 
 async function handleSaveCurrent() {
@@ -76,7 +105,7 @@ async function handleSaveCurrent() {
 
     await upsertRecord(record);
     await setLastActiveCluid(targetCluid);
-    await renderRecords();
+    await refreshRecords();
     setStatus(`Saved data for ${targetCluid}.`);
   } catch (error) {
     console.error(error);
@@ -99,79 +128,132 @@ async function handleDelete(record: CluidRecord) {
   const confirmation = confirm(`Delete stored data for ${record.cluid}?`);
   if (!confirmation) return;
   await deleteRecord(record.cluid);
-  await renderRecords();
+  removeEditingNote(record.cluid);
+  await refreshRecords();
   setStatus(`Deleted ${record.cluid}.`);
 }
 
-function renderRecordRow(record: CluidRecord): HTMLTableRowElement {
-  const template = document.getElementById('record-row-template') as HTMLTemplateElement;
-  const clone = template.content.firstElementChild!.cloneNode(true) as HTMLTableRowElement;
-  (clone.querySelector('.cluid') as HTMLElement).textContent = record.cluid;
-  (clone.querySelector('.note') as HTMLElement).textContent = record.note || '—';
-  (clone.querySelector('.product') as HTMLElement).textContent = getProductValue(record);
-  (clone.querySelector('.edited') as HTMLElement).textContent = new Date(record.lastEdited).toLocaleString();
+async function handleSaveNote(record: CluidRecord) {
+  const note = state.editingNotes[record.cluid] ?? '';
+  const updated: CluidRecord = { ...record, note: note.trim(), lastEdited: nowIso() };
+  await upsertRecord(updated);
+  removeEditingNote(record.cluid);
+  await refreshRecords();
+  setStatus(`Updated note for ${record.cluid}.`);
+}
 
-  const actionsCell = clone.querySelector('.actions') as HTMLElement;
-  const startInlineEdit = () => {
-    const noteCell = clone.querySelector('.note') as HTMLElement;
-    const currentValue = record.note || '';
+function startEditing(record: CluidRecord) {
+  state.editingNotes = { ...state.editingNotes, [record.cluid]: record.note || '' };
+  renderApp();
+}
 
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.value = currentValue;
-    input.placeholder = 'First name Last name';
-    input.size = 24;
+function StatusMessage({ status }: { status: StatusState | null }) {
+  if (!status?.message) return null;
+  return h('section', { id: 'status', className: status.type, 'aria-live': 'polite' }, status.message);
+}
 
-    noteCell.textContent = '';
-    noteCell.appendChild(input);
+function RecordRow({ record, noteDraft }: { record: CluidRecord; noteDraft?: string }) {
+  const isEditing = typeof noteDraft === 'string';
+  const actions = isEditing
+    ? [
+        h(
+          'button',
+          { onClick: () => void handleFill(record), title: 'Fill the page with this record' },
+          'Load'
+        ),
+        h('button', { onClick: () => void handleSaveNote(record) }, 'Save'),
+        h('button', { onClick: () => removeEditingNote(record.cluid) }, 'Cancel'),
+        h('button', { onClick: () => void handleDelete(record) }, 'Delete'),
+      ]
+    : [
+        h(
+          'button',
+          { onClick: () => void handleFill(record), title: 'Fill the page with this record' },
+          'Load'
+        ),
+        h('button', { onClick: () => startEditing(record) }, 'Edit note'),
+        h('button', { onClick: () => void handleDelete(record) }, 'Delete'),
+      ];
 
-    const saveButton = buildActionButton('Save', async () => {
-      const updated: CluidRecord = { ...record, note: input.value.trim(), lastEdited: nowIso() };
-      await upsertRecord(updated);
-      await renderRecords();
-      setStatus(`Updated note for ${record.cluid}.`);
-    });
+  const noteCellContent = isEditing
+    ? h('input', {
+        type: 'text',
+        value: noteDraft || '',
+        placeholder: 'First name Last name',
+        size: 24,
+        onInput: (event: Event) => updateEditingNote(record.cluid, (event.target as HTMLInputElement).value),
+      })
+    : record.note || '—';
 
-    const cancelButton = buildActionButton('Cancel', () => renderRecords());
+  return h(
+    'tr',
+    null,
+    h('td', { className: 'cluid' }, record.cluid),
+    h('td', { className: 'note' }, noteCellContent),
+    h('td', { className: 'product' }, getProductValue(record)),
+    h('td', { className: 'edited' }, new Date(record.lastEdited).toLocaleString()),
+    h('td', { className: 'actions' }, actions)
+  );
+}
 
-    actionsCell.replaceChildren(
-      buildActionButton('Load', () => handleFill(record), 'Fill the page with this record'),
-      saveButton,
-      cancelButton,
-      buildActionButton('Delete', () => handleDelete(record))
-    );
-
-    input.focus();
-  };
-
-  actionsCell.append(
-    buildActionButton('Load', () => handleFill(record), 'Fill the page with this record'),
-    buildActionButton('Edit note', startInlineEdit),
-    buildActionButton('Delete', () => handleDelete(record))
+function RecordsTable({ state }: { state: AppState }) {
+  const rows = state.records.map((record) =>
+    h(RecordRow, { record, noteDraft: state.editingNotes[record.cluid] })
   );
 
-  return clone;
+  const bodyContent = rows.length
+    ? rows
+    : [h('tr', null, h('td', { colSpan: 5 }, 'No saved records yet.'))];
+
+  return h(
+    'section',
+    null,
+    h(
+      'table',
+      null,
+      h(
+        'thead',
+        null,
+        h(
+          'tr',
+          null,
+          h('th', null, 'Cluid'),
+          h('th', null, 'Note'),
+          h('th', null, 'Product'),
+          h('th', null, 'Last Edited'),
+          h('th', null, 'Actions')
+        )
+      ),
+      h('tbody', null, bodyContent)
+    )
+  );
 }
 
-async function renderRecords() {
-  const records = await getRecords();
-  recordsTbody.innerHTML = '';
-  records
-    .sort((a, b) => new Date(b.lastEdited).getTime() - new Date(a.lastEdited).getTime())
-    .forEach((record) => recordsTbody.appendChild(renderRecordRow(record)));
-  if (records.length === 0) {
-    const emptyRow = document.createElement('tr');
-    const cell = document.createElement('td');
-    cell.colSpan = 5;
-    cell.textContent = 'No saved records yet.';
-    emptyRow.appendChild(cell);
-    recordsTbody.appendChild(emptyRow);
-  }
+function App({ appState }: { appState: AppState }) {
+  return h(
+    React.Fragment,
+    null,
+    h(
+      'header',
+      null,
+      h('h1', null, 'Loan Debug Helper'),
+      h('button', { onClick: () => void handleSaveCurrent() }, '💾 Save current form')
+    ),
+    h(StatusMessage, { status: appState.status }),
+    h(RecordsTable, { state: appState })
+  );
 }
 
-function init() {
-  renderRecords();
-  saveCurrentButton.addEventListener('click', handleSaveCurrent);
+const rootElement = document.getElementById('root');
+if (!rootElement) {
+  throw new Error('Root container for popup not found.');
 }
 
-document.addEventListener('DOMContentLoaded', init);
+const root = ReactDOM.createRoot(rootElement);
+
+function renderApp() {
+  root.render(h(App, { appState: state }));
+}
+
+renderApp();
+void refreshRecords();

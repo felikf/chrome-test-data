@@ -8,8 +8,14 @@
     "build": "tsc -p tsconfig.json",
     "package": "npm run clean && npm run build && node scripts/package.js"
   },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
   "devDependencies": {
     "@types/chrome": "^0.0.262",
+    "@types/react": "^18.3.4",
+    "@types/react-dom": "^18.3.0",
     "typescript": "^5.4.5"
   }
 }
