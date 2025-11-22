@@ -1,17 +1,18 @@
 body {
   font-family: Arial, sans-serif;
-  min-width: 1280px;
+  min-width: 1024px;
   margin: 0;
-  padding: 12px;
+  padding: 10px;
   background: #f8f9fb;
   color: #1f2937;
+  font-size: 13px;
 }
 
 header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .header-actions {
@@ -20,7 +21,7 @@ header {
 }
 
 h1 {
-  font-size: 18px;
+  font-size: 17px;
   margin: 0;
 }
 
@@ -114,15 +115,29 @@ table {
 
 th,
 td {
-  padding: 8px;
+  padding: 6px 8px;
   border-bottom: 1px solid #e5e7eb;
   text-align: left;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 th {
   background: #f3f4f6;
   font-weight: 600;
+}
+
+td.cluid {
+  line-height: 1.35;
+}
+
+.cluid-value {
+  font-weight: 600;
+}
+
+.product-line {
+  color: #4b5563;
+  font-size: 11px;
+  margin-top: 2px;
 }
 
 td.actions button {
@@ -136,8 +151,8 @@ td.actions button:last-child {
 .action-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin: 8px 0 12px;
+  gap: 6px;
+  margin: 6px 0 10px;
 }
 
 .legend-item {
