@@ -1,3 +1,16 @@
+:root {
+  --btn-primary-bg: #1d4ed8;
+  --btn-primary-border: #1e3a8a;
+  --btn-success-bg: #15803d;
+  --btn-success-border: #14532d;
+  --btn-danger-bg: #b91c1c;
+  --btn-danger-border: #7f1d1d;
+  --btn-secondary-bg: #e5e7eb;
+  --btn-secondary-border: #d1d5db;
+  --btn-accent-bg: #0ea5e9;
+  --btn-accent-border: #0284c7;
+}
+
 body {
   font-family: Arial, sans-serif;
   min-width: 800px;
@@ -43,9 +56,9 @@ button:hover {
 }
 
 .btn-primary {
-  background: #1d4ed8;
+  background: var(--btn-primary-bg);
   color: #ffffff;
-  border-color: #1e3a8a;
+  border-color: var(--btn-primary-border);
 }
 
 .btn-primary:hover {
@@ -53,9 +66,9 @@ button:hover {
 }
 
 .btn-success {
-  background: #15803d;
+  background: var(--btn-success-bg);
   color: #ffffff;
-  border-color: #14532d;
+  border-color: var(--btn-success-border);
 }
 
 .btn-success:hover {
@@ -63,9 +76,9 @@ button:hover {
 }
 
 .btn-danger {
-  background: #b91c1c;
+  background: var(--btn-danger-bg);
   color: #ffffff;
-  border-color: #7f1d1d;
+  border-color: var(--btn-danger-border);
 }
 
 .btn-danger:hover {
@@ -73,9 +86,9 @@ button:hover {
 }
 
 .btn-secondary {
-  background: #e5e7eb;
+  background: var(--btn-secondary-bg);
   color: #111827;
-  border-color: #d1d5db;
+  border-color: var(--btn-secondary-border);
 }
 
 .btn-secondary:hover {
@@ -83,9 +96,9 @@ button:hover {
 }
 
 .btn-accent {
-  background: #0ea5e9;
+  background: var(--btn-accent-bg);
   color: #ffffff;
-  border-color: #0284c7;
+  border-color: var(--btn-accent-border);
 }
 
 .btn-accent:hover {
@@ -160,11 +173,41 @@ td.actions button:last-child {
   align-items: center;
   gap: 6px;
   padding: 4px 8px;
-  background: #eef2ff;
-  border: 1px solid #c7d2fe;
+  background: var(--btn-secondary-bg);
+  border: 1px solid var(--btn-secondary-border);
   border-radius: 12px;
   font-size: 13px;
   color: #1f2937;
+}
+
+.legend-primary {
+  background: var(--btn-primary-bg);
+  border-color: var(--btn-primary-border);
+  color: #ffffff;
+}
+
+.legend-success {
+  background: var(--btn-success-bg);
+  border-color: var(--btn-success-border);
+  color: #ffffff;
+}
+
+.legend-danger {
+  background: var(--btn-danger-bg);
+  border-color: var(--btn-danger-border);
+  color: #ffffff;
+}
+
+.legend-secondary {
+  background: var(--btn-secondary-bg);
+  border-color: var(--btn-secondary-border);
+  color: #111827;
+}
+
+.legend-accent {
+  background: var(--btn-accent-bg);
+  border-color: var(--btn-accent-border);
+  color: #ffffff;
 }
 
 .legend-emoji {
