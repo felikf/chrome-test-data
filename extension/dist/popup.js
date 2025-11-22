@@ -324,6 +324,7 @@ function RecordRow({ record, noteDraft }) {
             onInput: (event) => updateEditingNote(record.cluid, event.target.value),
         })
         : record.note || '—';
+    const productValue = getProductValue(record);
     return h('tr', {
         draggable: true,
         onDragStart: () => {
@@ -342,14 +343,14 @@ function RecordRow({ record, noteDraft }) {
         onDragEnd: () => {
             draggingCluid = null;
         },
-    }, h('td', { className: 'reorder-handle', title: 'Drag to reorder' }, '☰'), h('td', { className: 'cluid' }, record.cluid), h('td', { className: 'product' }, getProductValue(record)), h('td', { className: 'note' }, noteCellContent), h('td', { className: 'edited' }, new Date(record.lastEdited).toLocaleString()), h('td', { className: 'actions' }, actions));
+    }, h('td', { className: 'reorder-handle', title: 'Drag to reorder' }, '☰'), h('td', { className: 'cluid' }, h('div', { className: 'cluid-value' }, record.cluid), h('div', { className: 'product-line' }, productValue)), h('td', { className: 'note' }, noteCellContent), h('td', { className: 'edited' }, new Date(record.lastEdited).toLocaleString()), h('td', { className: 'actions' }, actions));
 }
 function RecordsTable({ state }) {
     const rows = state.records.map((record) => h(RecordRow, { record, noteDraft: state.editingNotes[record.cluid] }));
     const bodyContent = rows.length
         ? rows
-        : [h('tr', null, h('td', { colSpan: 6 }, 'No saved records yet.'))];
-    return h('section', null, h(ActionLegend, null), h('table', null, h('thead', null, h('tr', null, h('th', { className: 'reorder-header', title: 'Reorder' }, '↕️'), h('th', null, 'Cluid'), h('th', null, 'Product'), h('th', null, 'Note'), h('th', null, 'Last Edited'), h('th', null, 'Actions'))), h('tbody', null, bodyContent)));
+        : [h('tr', null, h('td', { colSpan: 5 }, 'No saved records yet.'))];
+    return h('section', null, h(ActionLegend, null), h('table', null, h('thead', null, h('tr', null, h('th', { className: 'reorder-header', title: 'Reorder' }, '↕️'), h('th', null, 'Cluid / Product'), h('th', null, 'Note'), h('th', null, 'Last Edited'), h('th', null, 'Actions'))), h('tbody', null, bodyContent)));
 }
 function ActionLegend() {
     const items = [
