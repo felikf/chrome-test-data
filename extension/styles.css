@@ -1,6 +1,6 @@
 body {
   font-family: Arial, sans-serif;
-  min-width: 720px;
+  min-width: 1080px;
   margin: 0;
   padding: 12px;
   background: #f8f9fb;
@@ -131,6 +131,22 @@ td.actions button {
 
 td.actions button:last-child {
   margin-right: 0;
+}
+
+.reorder-header {
+  width: 36px;
+  text-align: center;
+}
+
+.reorder-handle {
+  cursor: grab;
+  text-align: center;
+  user-select: none;
+  width: 36px;
+}
+
+.reorder-handle:active {
+  cursor: grabbing;
 }
 
 .importer {
