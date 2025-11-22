@@ -519,19 +519,19 @@ function RecordsTable({ state }: { state: AppState }) {
 }
 
 function ActionLegend() {
-  const items = [
-    ['⬇️', 'Load record'],
-    ['📝', 'Edit note'],
-    ['💾', 'Save note'],
-    ['↩️', 'Cancel editing'],
-    ['🚀', 'Load and redirect'],
-    ['🗑️', 'Delete record'],
+  const items: Array<[string, string, string]> = [
+    ['⬇️', 'Load record', 'legend-success'],
+    ['📝', 'Edit note', 'legend-secondary'],
+    ['💾', 'Save note', 'legend-primary'],
+    ['↩️', 'Cancel editing', 'legend-secondary'],
+    ['🚀', 'Load and redirect', 'legend-accent'],
+    ['🗑️', 'Delete record', 'legend-danger'],
   ];
 
-  const legendItems = items.map(([emoji, label]) =>
+  const legendItems = items.map(([emoji, label, legendClass]) =>
     h(
       'span',
-      { className: 'legend-item' },
+      { className: `legend-item ${legendClass}` },
       h('span', { className: 'legend-emoji', 'aria-hidden': 'true' }, emoji),
       h('span', { className: 'legend-label' }, label)
     )
