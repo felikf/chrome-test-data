@@ -21,7 +21,9 @@ async function writeAll(records: Record<string, CluidRecord>): Promise<void> {
 
 export async function getRecords(): Promise<CluidRecord[]> {
   const records = await readAll();
-  return Object.values(records).sort((a, b) => b.lastEdited.localeCompare(a.lastEdited));
+  return Object.values(records).sort(
+    (a, b) => new Date(b.lastEdited).getTime() - new Date(a.lastEdited).getTime(),
+  );
 }
 
 export async function upsertRecord(record: CluidRecord): Promise<void> {
