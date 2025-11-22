@@ -109,8 +109,6 @@ function renderRecordRow(record: CluidRecord): HTMLTableRowElement {
   (clone.querySelector('.cluid') as HTMLElement).textContent = record.cluid;
   (clone.querySelector('.note') as HTMLElement).textContent = record.note || '—';
   (clone.querySelector('.product') as HTMLElement).textContent = getProductValue(record);
-  (clone.querySelector('.application') as HTMLElement).textContent = record.applicationState || '—';
-  (clone.querySelector('.step') as HTMLElement).textContent = record.stepCode || '—';
   (clone.querySelector('.edited') as HTMLElement).textContent = new Date(record.lastEdited).toLocaleString();
 
   const actionsCell = clone.querySelector('.actions') as HTMLElement;
@@ -164,7 +162,7 @@ async function renderRecords() {
   if (records.length === 0) {
     const emptyRow = document.createElement('tr');
     const cell = document.createElement('td');
-    cell.colSpan = 7;
+    cell.colSpan = 5;
     cell.textContent = 'No saved records yet.';
     emptyRow.appendChild(cell);
     recordsTbody.appendChild(emptyRow);

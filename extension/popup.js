@@ -9,6 +9,15 @@ function setStatus(message, type = 'info') {
   statusEl.className = type;
 }
 
+function getProductValue(record) {
+  const candidates = ['product', 'Product', 'productName', 'ProductName'];
+  for (const key of candidates) {
+    const value = record.formData?.[key];
+    if (value) return value;
+  }
+  return '—';
+}
+
 async function getActiveTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id) {
@@ -100,8 +109,7 @@ function renderRecordRow(record) {
   const clone = template.content.firstElementChild.cloneNode(true);
   clone.querySelector('.cluid').textContent = record.cluid;
   clone.querySelector('.note').textContent = record.note || '—';
-  clone.querySelector('.application').textContent = record.applicationState || '—';
-  clone.querySelector('.step').textContent = record.stepCode || '—';
+  clone.querySelector('.product').textContent = getProductValue(record);
   clone.querySelector('.edited').textContent = new Date(record.lastEdited).toLocaleString();
 
   const actionsCell = clone.querySelector('.actions');
@@ -121,7 +129,7 @@ async function renderRecords() {
   if (records.length === 0) {
     const emptyRow = document.createElement('tr');
     const cell = document.createElement('td');
-    cell.colSpan = 6;
+    cell.colSpan = 5;
     cell.textContent = 'No saved records yet.';
     emptyRow.appendChild(cell);
     recordsTbody.appendChild(emptyRow);
