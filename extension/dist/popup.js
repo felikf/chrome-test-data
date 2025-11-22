@@ -390,7 +390,7 @@ function App({ appState }) {
     }, 'Uložit formulář'), h('button', {
         className: 'btn btn-secondary',
         onClick: () => void handleRedirectToDebug(),
-        title: 'Redirect to debug page',
+        title: 'Debug page',
         'aria-label': 'Redirect to debug page',
     }, 'Debug redirect'))), h(StatusMessage, { status: appState.status }), h(RecordsTable, { state: appState }), h('section', { className: 'importer' }, h('h2', null, 'Import cluids'), h('p', null, 'Paste cluids separated by comma, semicolon, whitespace, or provide pairs like "cluid Firstname Lastname".'), h('div', { className: 'importer-controls' }, h('textarea', {
         value: appState.importInput,
