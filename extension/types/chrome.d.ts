@@ -25,9 +25,11 @@ declare namespace chrome {
     }
     interface Tab {
       id?: number;
+      url?: string;
     }
     function query(queryInfo: QueryInfo): Promise<Tab[]>;
     function sendMessage(tabId: number, message: any): Promise<any>;
+    function update(tabId: number, updateProperties: { url?: string }): Promise<Tab>;
   }
 
   namespace runtime {

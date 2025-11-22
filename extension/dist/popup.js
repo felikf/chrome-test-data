@@ -120,6 +120,23 @@ async function handleTriggerRedirect() {
         setStatus('Failed to trigger redirect on the page.', 'error');
     }
 }
+async function handleRedirectToDebug() {
+    try {
+        const tab = await getActiveTab();
+        if (!tab.url) {
+            setStatus('Active tab has no URL.', 'error');
+            return;
+        }
+        const origin = new URL(tab.url).origin;
+        const targetUrl = `${origin}/loan/debug/?cluid=123&idpOrigin=TOKEN_EXTRACTION_local&environment=INT#access_token=saf`;
+        await chrome.tabs.update(tab.id, { url: targetUrl });
+        setStatus('Redirecting to debug page...');
+    }
+    catch (error) {
+        console.error(error);
+        setStatus('Failed to redirect to debug page.', 'error');
+    }
+}
 async function handleFill(record) {
     try {
         await fillForm(record.formData, record.cluid);
@@ -365,12 +382,17 @@ function ActionLegend() {
     return h('div', { className: 'action-legend', 'aria-label': 'Action legend' }, legendItems);
 }
 function App({ appState }) {
-    return h(React.Fragment, null, h('header', null, h('h1', null, 'Loan Debug Helper'), h('div', { className: 'header-actions' }, h('button', {
+    return h(React.Fragment, null, h('header', null, h('h1', null, 'Krásný debug extension'), h('div', { className: 'header-actions' }, h('button', {
         className: 'btn btn-primary',
         onClick: () => void handleSaveCurrent(),
         title: 'Save current form',
         'aria-label': 'Save current form',
-    }, '💾'))), h(StatusMessage, { status: appState.status }), h(RecordsTable, { state: appState }), h('section', { className: 'importer' }, h('h2', null, 'Import cluids'), h('p', null, 'Paste cluids separated by comma, semicolon, whitespace, or provide pairs like "cluid Firstname Lastname".'), h('div', { className: 'importer-controls' }, h('textarea', {
+    }, 'Uložit formulář'), h('button', {
+        className: 'btn btn-secondary',
+        onClick: () => void handleRedirectToDebug(),
+        title: 'Redirect to debug page',
+        'aria-label': 'Redirect to debug page',
+    }, 'Debug redirect'))), h(StatusMessage, { status: appState.status }), h(RecordsTable, { state: appState }), h('section', { className: 'importer' }, h('h2', null, 'Import cluids'), h('p', null, 'Paste cluids separated by comma, semicolon, whitespace, or provide pairs like "cluid Firstname Lastname".'), h('div', { className: 'importer-controls' }, h('textarea', {
         value: appState.importInput,
         rows: 4,
         placeholder: '8016-... John Doe\n9015-... Jane Doe',

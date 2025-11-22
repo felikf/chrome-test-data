@@ -165,6 +165,25 @@ async function handleTriggerRedirect() {
   }
 }
 
+async function handleRedirectToDebug() {
+  try {
+    const tab = await getActiveTab();
+    if (!tab.url) {
+      setStatus('Active tab has no URL.', 'error');
+      return;
+    }
+
+    const origin = new URL(tab.url).origin;
+    const targetUrl = `${origin}/loan/debug/?cluid=123&idpOrigin=TOKEN_EXTRACTION_local&environment=INT#access_token=saf`;
+
+    await chrome.tabs.update(tab.id!, { url: targetUrl });
+    setStatus('Redirecting to debug page...');
+  } catch (error) {
+    console.error(error);
+    setStatus('Failed to redirect to debug page.', 'error');
+  }
+}
+
 async function handleFill(record: CluidRecord) {
   try {
     await fillForm(record.formData, record.cluid);
@@ -528,7 +547,7 @@ function App({ appState }: { appState: AppState }) {
     h(
       'header',
       null,
-      h('h1', null, 'Loan Debug Helper'),
+      h('h1', null, 'Krásný debug extension'),
       h(
         'div',
         { className: 'header-actions' },
@@ -540,7 +559,17 @@ function App({ appState }: { appState: AppState }) {
             title: 'Save current form',
             'aria-label': 'Save current form',
           },
-          '💾'
+          'Uložit formulář'
+        ),
+        h(
+          'button',
+          {
+            className: 'btn btn-secondary',
+            onClick: () => void handleRedirectToDebug(),
+            title: 'Redirect to debug page',
+            'aria-label': 'Redirect to debug page',
+          },
+          'Debug redirect'
         )
       )
     ),
