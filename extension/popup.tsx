@@ -1,3 +1,4 @@
+import { React, ReactDOM } from './utils/reactGlobals.js';
 import {
   CluidRecord,
   deleteRecord,
@@ -7,26 +8,8 @@ import {
   setLastActiveCluid,
   upsertRecord,
 } from './utils/storage.js';
-
-type StatusState = { message: string; type: 'info' | 'error' };
-type AppState = {
-  records: CluidRecord[];
-  status: StatusState | null;
-  editingNotes: Record<string, string>;
-  importInput: string;
-  recordsOrder: string[];
-};
-
-declare const React: {
-  createElement: (type: any, props?: Record<string, unknown> | null, ...children: any[]) => any;
-  Fragment: symbol;
-};
-
-declare const ReactDOM: {
-  createRoot: (container: Element | DocumentFragment) => { render: (element: any) => void };
-};
-
-const h = React.createElement;
+import { AppState, ImportEntry, StatusState } from './appState.js';
+import { App } from './components/App.js';
 
 const state: AppState = {
   records: [],
@@ -35,6 +18,8 @@ const state: AppState = {
   importInput: '',
   recordsOrder: [],
 };
+
+let draggingCluid: string | null = null;
 
 function setStatus(message: string, type: StatusState['type'] = 'info') {
   state.status = { message, type };
@@ -54,8 +39,7 @@ function getProductValue(record: CluidRecord): string {
     .map((key) => record.formData?.[key])
     .find((value) => typeof value === 'string' && value.trim().length > 0);
 
-  const channelProduct =
-    record.formData?.['channelProduct'] || record.formData?.['ChannelProduct'];
+  const channelProduct = record.formData?.['channelProduct'] || record.formData?.['ChannelProduct'];
 
   if (productValue && channelProduct && channelProduct !== productValue) {
     return `${productValue} / ${channelProduct}`;
@@ -222,8 +206,6 @@ function updateImportInput(value: string) {
   renderApp();
 }
 
-type ImportEntry = { cluid: string; note?: string };
-
 const cluidPattern = /^\d{4}-\d{2}-\d{2}-\d{2}\.\d{2}\.\d{2}\.\d+$/;
 
 function isLikelyCluid(value: string): boolean {
@@ -310,13 +292,6 @@ async function handleImportCluids() {
   }
 }
 
-function StatusMessage({ status }: { status: StatusState | null }) {
-  if (!status?.message) return null;
-  return h('section', { id: 'status', className: status.type, 'aria-live': 'polite' }, status.message);
-}
-
-let draggingCluid: string | null = null;
-
 function reorderRecords(sourceCluid: string, targetCluid: string) {
   const current = [...state.records];
   const fromIndex = current.findIndex((item) => item.cluid === sourceCluid);
@@ -341,266 +316,18 @@ async function handleFillAndRedirect(record: CluidRecord) {
   }
 }
 
-function RecordRow({ record, noteDraft }: { record: CluidRecord; noteDraft?: string }) {
-  const isEditing = typeof noteDraft === 'string';
-  const actions = isEditing
-    ? [
-        h(
-          'button',
-          {
-            className: 'btn btn-success',
-            onClick: () => void handleFill(record),
-            title: 'Fill the page with this record',
-            'aria-label': 'Load record into page',
-          },
-          '⬇️'
-        ),
-        h(
-          'button',
-          {
-            className: 'btn btn-primary',
-            onClick: () => void handleSaveNote(record),
-            title: 'Save the note',
-            'aria-label': 'Save note',
-          },
-          '💾'
-        ),
-        h(
-          'button',
-          {
-            className: 'btn btn-secondary',
-            onClick: () => removeEditingNote(record.cluid),
-            title: 'Cancel note editing',
-            'aria-label': 'Cancel note editing',
-          },
-          '↩️'
-        ),
-        h(
-          'button',
-          {
-            className: 'btn btn-accent',
-            onClick: () => void handleFillAndRedirect(record),
-            title: 'Load and redirect',
-            'aria-label': 'Load and redirect',
-          },
-          '🚀'
-        ),
-        h(
-          'button',
-          {
-            className: 'btn btn-danger',
-            onClick: () => void handleDelete(record),
-            title: 'Delete record',
-            'aria-label': 'Delete record',
-          },
-          '🗑️'
-        ),
-      ]
-    : [
-        h(
-          'button',
-          {
-            className: 'btn btn-success',
-            onClick: () => void handleFill(record),
-            title: 'Fill the page with this record',
-            'aria-label': 'Load record into page',
-          },
-          '⬇️'
-        ),
-        h(
-          'button',
-          {
-            className: 'btn btn-secondary',
-            onClick: () => startEditing(record),
-            title: 'Edit note',
-            'aria-label': 'Edit note',
-          },
-          '📝'
-        ),
-        h(
-          'button',
-          {
-            className: 'btn btn-accent',
-            onClick: () => void handleFillAndRedirect(record),
-            title: 'Load and redirect',
-            'aria-label': 'Load and redirect',
-          },
-          '🚀'
-        ),
-        h(
-          'button',
-          {
-            className: 'btn btn-danger',
-            onClick: () => void handleDelete(record),
-            title: 'Delete record',
-            'aria-label': 'Delete record',
-          },
-          '🗑️'
-        ),
-      ];
-
-  const noteCellContent = isEditing
-    ? h('input', {
-        type: 'text',
-        value: noteDraft || '',
-        placeholder: 'First name Last name',
-        size: 24,
-        onInput: (event: Event) => updateEditingNote(record.cluid, (event.target as HTMLInputElement).value),
-      })
-    : record.note || '—';
-
-  const productValue = getProductValue(record);
-
-  return h(
-    'tr',
-    {
-      draggable: true,
-      onDragStart: () => {
-        draggingCluid = record.cluid;
-      },
-      onDragOver: (event: DragEvent) => {
-        event.preventDefault();
-      },
-      onDrop: (event: DragEvent) => {
-        event.preventDefault();
-        if (!draggingCluid || draggingCluid === record.cluid) return;
-        reorderRecords(draggingCluid, record.cluid);
-        draggingCluid = null;
-      },
-      onDragEnd: () => {
-        draggingCluid = null;
-      },
-    },
-    h('td', { className: 'reorder-handle', title: 'Drag to reorder' }, '☰'),
-    h(
-      'td',
-      { className: 'cluid' },
-      h('div', { className: 'cluid-value' }, record.cluid),
-      h('div', { className: 'product-line' }, productValue)
-    ),
-    h('td', { className: 'note' }, noteCellContent),
-    h('td', { className: 'edited' }, new Date(record.lastEdited).toLocaleString()),
-    h('td', { className: 'actions' }, actions)
-  );
+function handleStartDrag(cluid: string) {
+  draggingCluid = cluid;
 }
 
-function RecordsTable({ state }: { state: AppState }) {
-  const rows = state.records.map((record) =>
-    h(RecordRow, { record, noteDraft: state.editingNotes[record.cluid] })
-  );
-
-  const bodyContent = rows.length
-    ? rows
-    : [h('tr', null, h('td', { colSpan: 5 }, 'No saved records yet.'))];
-
-  return h(
-    'section',
-    null,
-    h(ActionLegend, null),
-    h(
-      'table',
-      null,
-      h(
-        'thead',
-        null,
-        h(
-          'tr',
-          null,
-          h('th', { className: 'reorder-header', title: 'Reorder' }, '↕️'),
-          h('th', null, 'Cluid / Product'),
-          h('th', null, 'Note'),
-          h('th', null, 'Last Edited'),
-          h('th', null, 'Actions')
-        )
-      ),
-      h('tbody', null, bodyContent)
-    )
-  );
+function handleDropOn(targetCluid: string) {
+  if (!draggingCluid || draggingCluid === targetCluid) return;
+  reorderRecords(draggingCluid, targetCluid);
+  draggingCluid = null;
 }
 
-function ActionLegend() {
-  const items: Array<[string, string, string]> = [
-    ['⬇️', 'Load record', 'legend-success'],
-    ['📝', 'Edit note', 'legend-secondary'],
-    ['💾', 'Save note', 'legend-primary'],
-    ['↩️', 'Cancel editing', 'legend-secondary'],
-    ['🚀', 'Load and redirect', 'legend-accent'],
-    ['🗑️', 'Delete record', 'legend-danger'],
-  ];
-
-  const legendItems = items.map(([emoji, label, legendClass]) =>
-    h(
-      'span',
-      { className: `legend-item ${legendClass}` },
-      h('span', { className: 'legend-emoji', 'aria-hidden': 'true' }, emoji),
-      h('span', { className: 'legend-label' }, label)
-    )
-  );
-
-  return h('div', { className: 'action-legend', 'aria-label': 'Action legend' }, legendItems);
-}
-
-function App({ appState }: { appState: AppState }) {
-  return h(
-    React.Fragment,
-    null,
-    h(
-      'header',
-      null,
-      h('h1', null, 'Krásný debug extension'),
-      h(
-        'div',
-        { className: 'header-actions' },
-        h(
-          'button',
-          {
-            className: 'btn btn-primary',
-            onClick: () => void handleSaveCurrent(),
-            title: 'Save current form',
-            'aria-label': 'Save current form',
-          },
-          'Uložit formulář'
-        ),
-        h(
-          'button',
-          {
-            className: 'btn btn-secondary',
-            onClick: () => void handleRedirectToDebug(),
-            title: 'Redirect to debug page',
-            'aria-label': 'Redirect to debug page',
-          },
-          'Debug redirect'
-        )
-      )
-    ),
-    h(StatusMessage, { status: appState.status }),
-    h(RecordsTable, { state: appState }),
-    h(
-      'section',
-      { className: 'importer' },
-      h('h2', null, 'Import cluids'),
-      h(
-        'p',
-        null,
-        'Paste cluids separated by comma, semicolon, whitespace, or provide pairs like "cluid Firstname Lastname".'
-      ),
-      h(
-        'div',
-        { className: 'importer-controls' },
-        h('textarea', {
-          value: appState.importInput,
-          rows: 4,
-          placeholder: '8016-... John Doe\n9015-... Jane Doe',
-          onInput: (event: Event) => updateImportInput((event.target as HTMLTextAreaElement).value),
-        }),
-        h(
-          'button',
-          { className: 'btn btn-primary', onClick: () => void handleImportCluids() },
-          'Import'
-        )
-      )
-    )
-  );
+function handleDragEnd() {
+  draggingCluid = null;
 }
 
 const rootElement = document.getElementById('root');
@@ -611,7 +338,26 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 
 function renderApp() {
-  root.render(h(App, { appState: state }));
+  root.render(
+    <App
+      state={state}
+      onSaveCurrent={handleSaveCurrent}
+      onRedirectToDebug={handleRedirectToDebug}
+      onFill={handleFill}
+      onStartEditing={startEditing}
+      onSaveNote={handleSaveNote}
+      onCancelEditing={removeEditingNote}
+      onFillAndRedirect={handleFillAndRedirect}
+      onDelete={handleDelete}
+      onNoteChange={updateEditingNote}
+      onImportCluids={handleImportCluids}
+      onUpdateImportInput={updateImportInput}
+      onResolveProductLabel={getProductValue}
+      onStartDrag={handleStartDrag}
+      onDropOn={handleDropOn}
+      onDragEnd={handleDragEnd}
+    />
+  );
 }
 
 renderApp();
