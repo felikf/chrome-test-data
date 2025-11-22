@@ -1,6 +1,6 @@
 body {
   font-family: Arial, sans-serif;
-  min-width: 1080px;
+  min-width: 1280px;
   margin: 0;
   padding: 12px;
   background: #f8f9fb;
@@ -131,6 +131,33 @@ td.actions button {
 
 td.actions button:last-child {
   margin-right: 0;
+}
+
+.action-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 12px;
+  font-size: 13px;
+  color: #1f2937;
+}
+
+.legend-emoji {
+  font-size: 15px;
+}
+
+.legend-label {
+  white-space: nowrap;
 }
 
 .reorder-header {

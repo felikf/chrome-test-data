@@ -332,28 +332,49 @@ function RecordRow({ record, noteDraft }: { record: CluidRecord; noteDraft?: str
             className: 'btn btn-success',
             onClick: () => void handleFill(record),
             title: 'Fill the page with this record',
+            'aria-label': 'Load record into page',
           },
-          'Load'
+          '⬇️'
         ),
         h(
           'button',
-          { className: 'btn btn-primary', onClick: () => void handleSaveNote(record) },
-          'Save'
+          {
+            className: 'btn btn-primary',
+            onClick: () => void handleSaveNote(record),
+            title: 'Save the note',
+            'aria-label': 'Save note',
+          },
+          '💾'
         ),
         h(
           'button',
-          { className: 'btn btn-secondary', onClick: () => removeEditingNote(record.cluid) },
-          'Cancel'
+          {
+            className: 'btn btn-secondary',
+            onClick: () => removeEditingNote(record.cluid),
+            title: 'Cancel note editing',
+            'aria-label': 'Cancel note editing',
+          },
+          '↩️'
         ),
         h(
           'button',
-          { className: 'btn btn-accent', onClick: () => void handleFillAndRedirect(record) },
-          'Redirect'
+          {
+            className: 'btn btn-accent',
+            onClick: () => void handleFillAndRedirect(record),
+            title: 'Load and redirect',
+            'aria-label': 'Load and redirect',
+          },
+          '🚀'
         ),
         h(
           'button',
-          { className: 'btn btn-danger', onClick: () => void handleDelete(record) },
-          'Delete'
+          {
+            className: 'btn btn-danger',
+            onClick: () => void handleDelete(record),
+            title: 'Delete record',
+            'aria-label': 'Delete record',
+          },
+          '🗑️'
         ),
       ]
     : [
@@ -363,23 +384,39 @@ function RecordRow({ record, noteDraft }: { record: CluidRecord; noteDraft?: str
             className: 'btn btn-success',
             onClick: () => void handleFill(record),
             title: 'Fill the page with this record',
+            'aria-label': 'Load record into page',
           },
-          'Load'
+          '⬇️'
         ),
         h(
           'button',
-          { className: 'btn btn-secondary', onClick: () => startEditing(record) },
-          'Edit note'
+          {
+            className: 'btn btn-secondary',
+            onClick: () => startEditing(record),
+            title: 'Edit note',
+            'aria-label': 'Edit note',
+          },
+          '📝'
         ),
         h(
           'button',
-          { className: 'btn btn-accent', onClick: () => void handleFillAndRedirect(record) },
-          'Redirect'
+          {
+            className: 'btn btn-accent',
+            onClick: () => void handleFillAndRedirect(record),
+            title: 'Load and redirect',
+            'aria-label': 'Load and redirect',
+          },
+          '🚀'
         ),
         h(
           'button',
-          { className: 'btn btn-danger', onClick: () => void handleDelete(record) },
-          'Delete'
+          {
+            className: 'btn btn-danger',
+            onClick: () => void handleDelete(record),
+            title: 'Delete record',
+            'aria-label': 'Delete record',
+          },
+          '🗑️'
         ),
       ];
 
@@ -434,6 +471,7 @@ function RecordsTable({ state }: { state: AppState }) {
   return h(
     'section',
     null,
+    h(ActionLegend, null),
     h(
       'table',
       null,
@@ -456,6 +494,28 @@ function RecordsTable({ state }: { state: AppState }) {
   );
 }
 
+function ActionLegend() {
+  const items = [
+    ['⬇️', 'Load record'],
+    ['📝', 'Edit note'],
+    ['💾', 'Save note'],
+    ['↩️', 'Cancel editing'],
+    ['🚀', 'Load and redirect'],
+    ['🗑️', 'Delete record'],
+  ];
+
+  const legendItems = items.map(([emoji, label]) =>
+    h(
+      'span',
+      { className: 'legend-item' },
+      h('span', { className: 'legend-emoji', 'aria-hidden': 'true' }, emoji),
+      h('span', { className: 'legend-label' }, label)
+    )
+  );
+
+  return h('div', { className: 'action-legend', 'aria-label': 'Action legend' }, legendItems);
+}
+
 function App({ appState }: { appState: AppState }) {
   return h(
     React.Fragment,
@@ -469,8 +529,13 @@ function App({ appState }: { appState: AppState }) {
         { className: 'header-actions' },
         h(
           'button',
-          { className: 'btn btn-primary', onClick: () => void handleSaveCurrent() },
-          '💾 Save current form'
+          {
+            className: 'btn btn-primary',
+            onClick: () => void handleSaveCurrent(),
+            title: 'Save current form',
+            'aria-label': 'Save current form',
+          },
+          '💾'
         )
       )
     ),
